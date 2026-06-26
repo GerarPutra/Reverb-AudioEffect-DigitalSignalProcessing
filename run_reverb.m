@@ -3,10 +3,6 @@ clear; clc; close all;
 frameLength = 1024;
 inputFile = 'y2mate.mp3'; 
 
-if ~exist(inputFile, 'file')
-    error('File tidak ditemukan: %s', inputFile);
-end
-
 fileReader = dsp.AudioFileReader(inputFile, ...
     'SamplesPerFrame', frameLength, 'PlayCount', 1); 
 deviceWriter = audioDeviceWriter('SampleRate', fileReader.SampleRate);
