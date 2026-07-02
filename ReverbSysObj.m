@@ -166,8 +166,6 @@ end
                 obj.pTankBotIdxs(3) = obj.pTankBotIdxs(3) + 1;
                 if obj.pTankBotIdxs(3) > obj.pTankBotDelays(3), obj.pTankBotIdxs(3) = 1; end
 
-                % --- STAGE 5: Output ---
-                % Gunakan output baru dari delay line
                 x3R = (topD2_new + botD2_new) / 2 * obj.pOutputGain;
                 x3L = x3R;
 
