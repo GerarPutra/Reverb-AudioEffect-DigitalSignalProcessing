@@ -10,38 +10,38 @@ classdef ReverbSysObj < handle
         WetDryMix = 0.4
     end
 
-    properties (Access = private)
-        pInternalFs = 29761;
-        pPreDelayBuf = [];
-        pPreDelayIdx = 1;
-        pPreDelayLen = 1;
-        pLpAlpha = 0;
-        pLpState = 0;
-        pApDecBufs = {};
-        pApDecIdxs = [];
-        pApDecDelays = [142, 107, 379, 277];
-        pBeta = 0;
-        pTankTopBufs = {};
-        pTankTopIdxs = [];
-        pTankTopDelays = [4453, 1800, 3720];
-        pTankTopLpState = 0;
-        pDecayGain = 0;
-        pPhi = 0;
-        pTankBotBufs = {};
-        pTankBotIdxs = [];
-        pTankBotDelays = [4217, 2656, 3163];
-        pTankBotLpState = 0;
-        pKappa = 0;
-        pOneMinusKappa = 0;
-        pOutputGain = 0.6;
-        pIsSetup = false;
-    end
+    properties
+    pInternalFs = 29761;
+    pPreDelayBuf = [];
+    pPreDelayIdx = 1;
+    pPreDelayLen = 1;
+    pLpAlpha = 0;
+    pLpState = 0;
+    pApDecBufs = {};
+    pApDecIdxs = [];
+    pApDecDelays = [142, 107, 379, 277];
+    pBeta = 0;
+    pTankTopBufs = {};
+    pTankTopIdxs = [];
+    pTankTopDelays = [4453, 1800, 3720];
+    pTankTopLpState = 0;
+    pDecayGain = 0;
+    pPhi = 0;
+    pTankBotBufs = {};
+    pTankBotIdxs = [];
+    pTankBotDelays = [4217, 2656, 3163];
+    pTankBotLpState = 0;
+    pKappa = 0;
+    pOneMinusKappa = 0;
+    pOutputGain = 1.6;
+    pIsSetup = false;
+end
 
     methods
         function obj = ReverbSysObj()
 
         end
-
+      
         function setup(obj, fs)
             if nargin > 1
                 obj.SampleRate = fs;
@@ -86,7 +86,7 @@ classdef ReverbSysObj < handle
             obj.pIsSetup = true;
         end
 
-        function y = process(obj, x)
+                function y = process(obj, x)
             if ~obj.pIsSetup
                 obj.setup(obj.SampleRate);
             end
@@ -125,44 +125,47 @@ classdef ReverbSysObj < handle
                 phi = obj.pPhi;
 
                 topD1 = obj.pTankTopBufs{1}(obj.pTankTopIdxs(1));
-                obj.pTankTopBufs{1}(obj.pTankTopIdxs(1)) = signal;
+                topD2 = obj.pTankTopBufs{3}(obj.pTankTopIdxs(3)); 
+                
+                topInput = signal + (topD2 * decayGain); 
+                
+                obj.pTankTopBufs{1}(obj.pTankTopIdxs(1)) = topInput;
                 obj.pTankTopIdxs(1) = obj.pTankTopIdxs(1) + 1;
                 if obj.pTankTopIdxs(1) > obj.pTankTopDelays(1), obj.pTankTopIdxs(1) = 1; end
 
                 topLP = (1 - phi) * topD1 + phi * obj.pTankTopLpState;
                 obj.pTankTopLpState = topLP;
-                topDecay = topLP * decayGain;
-
-                topAP = obj.localAllpass(topDecay, obj.pTankTopBufs{2}, ...
+                topAP = obj.localAllpass(topLP, obj.pTankTopBufs{2}, ...
                     obj.pTankTopIdxs(2), obj.pTankTopDelays(2), beta);
                 obj.pTankTopIdxs(2) = obj.pTankTopIdxs(2) + 1;
                 if obj.pTankTopIdxs(2) > obj.pTankTopDelays(2), obj.pTankTopIdxs(2) = 1; end
 
-                topD2 = obj.pTankTopBufs{3}(obj.pTankTopIdxs(3));
+                topD2_new = obj.pTankTopBufs{3}(obj.pTankTopIdxs(3));
                 obj.pTankTopBufs{3}(obj.pTankTopIdxs(3)) = topAP;
                 obj.pTankTopIdxs(3) = obj.pTankTopIdxs(3) + 1;
                 if obj.pTankTopIdxs(3) > obj.pTankTopDelays(3), obj.pTankTopIdxs(3) = 1; end
 
                 botD1 = obj.pTankBotBufs{1}(obj.pTankBotIdxs(1));
-                obj.pTankBotBufs{1}(obj.pTankBotIdxs(1)) = signal;
+                botD2 = obj.pTankB
+                botInput = signal + (botD2 * decayGain);
+                
+                obj.pTankBotBufs{1}(obj.pTankBotIdxs(1)) = botInput;
                 obj.pTankBotIdxs(1) = obj.pTankBotIdxs(1) + 1;
                 if obj.pTankBotIdxs(1) > obj.pTankBotDelays(1), obj.pTankBotIdxs(1) = 1; end
 
                 botLP = (1 - phi) * botD1 + phi * obj.pTankBotLpState;
                 obj.pTankBotLpState = botLP;
-                botDecay = botLP * decayGain;
-
-                botAP = obj.localAllpass(botDecay, obj.pTankBotBufs{2}, ...
+                botAP = obj.localAllpass(botLP, obj.pTankBotBufs{2}, ...
                     obj.pTankBotIdxs(2), obj.pTankBotDelays(2), beta);
                 obj.pTankBotIdxs(2) = obj.pTankBotIdxs(2) + 1;
                 if obj.pTankBotIdxs(2) > obj.pTankBotDelays(2), obj.pTankBotIdxs(2) = 1; end
 
-                botD2 = obj.pTankBotBufs{3}(obj.pTankBotIdxs(3));
+                botD2_new = obj.pTankBotBufs{3}(obj.pTankBotIdxs(3));
                 obj.pTankBotBufs{3}(obj.pTankBotIdxs(3)) = botAP;
                 obj.pTankBotIdxs(3) = obj.pTankBotIdxs(3) + 1;
                 if obj.pTankBotIdxs(3) > obj.pTankBotDelays(3), obj.pTankBotIdxs(3) = 1; end
 
-                x3R = (topD2 + botD2) / 2 * obj.pOutputGain;
+                x3R = (topD2_new + botD2_new) / 2 * obj.pOutputGain;
                 x3L = x3R;
 
                 kappa = obj.pKappa;
@@ -170,21 +173,20 @@ classdef ReverbSysObj < handle
                 y(n,1) = oneMinusKappa * xDryR + kappa * x3R;
                 y(n,2) = oneMinusKappa * xDryL + kappa * x3L;
             end
-        end
+                end
+                function reset(obj)
+                    if obj.pIsSetup
+                        obj.setup(obj.SampleRate);
+                    end
+                end
 
-        function reset(obj)
-            if obj.pIsSetup
-                obj.setup(obj.SampleRate);
-            end
-        end
-
-        function out = localAllpass(~, in, buf, idx, delay, beta)
-            readIdx = idx - delay;
-            while readIdx < 1, readIdx = readIdx + length(buf); end
-            xDelayed = buf(readIdx);
-            yDelayed = buf(idx);
-            out = -beta * in + xDelayed + beta * yDelayed;
-            buf(idx) = out;
-        end
+                function out = localAllpass(~, in, buf, idx, delay, beta)
+                    readIdx = idx - delay;
+                    while readIdx < 1, readIdx = readIdx + length(buf); end
+                    xDelayed = buf(readIdx);
+                    yDelayed = buf(idx);
+                    out = -beta * in + xDelayed + beta * yDelayed;
+                    buf(idx) = out;
+                end
     end
 end
